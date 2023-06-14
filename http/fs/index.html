@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<!-- 
+	Todo: 
+	- Auswahl, ob ethernet oder Funk
+	- Frequenz einstellen bei Rover
+-->
+<html>
+<head>
+	<title>RTK-GPS ConfigTool</title>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<!--
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/fetch/3.6.2/fetch.min.js"></script>
+	-->
+	<script>
+		var xhr;
+
+		function onload(){
+			xhr = new XMLHttpRequest();
+			Timer1();
+			showStatus();
+		}
+
+		function Timer1() {
+			fetch("getvalue")
+				.then((response) => response.text())
+				.then((data) => {
+					var response = data.split("|");
+					document.getElementById("ss").value = response[0];
+					document.getElementById("sot").value = response[1];
+					document.getElementById("spu").value = response[2];
+					document.getElementById("exs").value = response[3];
+					document.getElementById("eys").value = response[4];
+					document.getElementById("ezs").value = response[5];
+					document.getElementById("sm").value = response[6];
+					document.getElementById("sv").value = response[7];
+					document.getElementById("m").value = response[8];
+					document.getElementById("smd").value = response[9];
+					document.getElementById("sal").value = response[10];
+					document.getElementById("nsu").value = response[11];
+					document.getElementById("ft").value = response[12];
+					document.getElementById("hmsl").value = response[13];
+					document.getElementById("hacc").value = response[14];
+					document.getElementById("vacc").value = response[15];
+					document.getElementById("ex").value = response[16];
+					document.getElementById("ey").value = response[17];					
+					document.getElementById("ez").value = response[18];
+					})
+				.catch((error) => console.error("Error:", error))
+				.finally(() => setTimeout(Timer1, 500));
+				showStatus();
+		}
+
+		function showStatus() {
+			var mode = document.getElementById("m").value;
+			if (mode == "Rover-Mode") {
+				document.getElementById("svin-block").style.display = "none";
+				document.getElementById("fixed-block").style.display = "none";
+				document.getElementById("rover-block").style.display = "block";
+				document.getElementById("base-block").style.display = "none";
+			} else if (mode == "Base-Mode - Survey-In"){
+				document.getElementById("svin-block").style.display = "block";
+				document.getElementById("fixed-block").style.display = "none";
+				document.getElementById("rover-block").style.display = "none";
+				document.getElementById("base-block").style.display = "block";
+			} else if (mode == "Base-Mode - Fixed") {
+				document.getElementById("svin-block").style.display = "none";
+				document.getElementById("fixed-block").style.display = "block";
+				document.getElementById("rover-block").style.display = "none";
+				document.getElementById("base-block").style.display = "base";
+			} else {
+				document.getElementById("svin-block").style.display = "none";
+				document.getElementById("fixed-block").style.display = "none";
+				document.getElementById("rover-block").style.display = "none";
+				document.getElementById("base-block").style.display = "none";
+			}
+		}
+
+		function submitForm() {
+			// Sammeln Sie die Daten aus dem Formular
+			var device = document.getElementById("device").value;
+			var baudrate = document.getElementById("baudrate").value;
+			var updateRate = document.getElementById("updateRate").value;
+			var baseMode = document.getElementById("baseMode").value;
+			var minTime = document.getElementById("minTime").value;
+			var accuracy = document.getElementById("accuracy").value;
+			var ecefX = document.getElementById("ecefX").value;
+			var ecefY = document.getElementById("ecefY").value;
+			var ecefZ = document.getElementById("ecefZ").value;
+			var nmea = document.getElementById("nmea").value;
+			// Erstellen Sie ein Objekt mit den gesammelten Daten
+			var data = {
+				  device: device,
+				  baudrate: baudrate,
+				  updateRate: updateRate,
+				  baseMode: baseMode,
+				  minTime: minTime,
+				  accuracy: accuracy,
+				  ecefX: ecefX,
+				  ecefY: ecefY,
+				  ecefZ: ecefZ
+			};
+			var url = "/set_config";
+			var params = Object.keys(data)
+				.map(function (key) {
+				return key + "=" + encodeURIComponent(data[key]);
+				})
+				.join("&");
+			url += "?" + params;
+
+			fetch(url)
+				.then((response) => response.text())
+				.then((data) => {
+					alert(data); // Zeige eine Nachricht mit der Antwort des Servers an
+				})
+				.catch((error) => console.error("Error:", error));
+		}
+
+		function submitIpForm() {
+			// Sammeln Sie die Daten aus dem Formular
+			var deviceIp = document.getElementById("deviceIp").value;
+			var netmask = document.getElementById("netmask").value;
+			var gateway = document.getElementById("gateway").value;
+			var rtcmPort = document.getElementById("rtcmPort").value;
+
+			var mode = document.getElementById("m").value;
+			if (mode == "Base-Mode - Fixed" || mode == "Base-Mode - Survey-In") {
+				var vehiclePort = "11111";
+				var vehicleIp = "1.1.1.1";
+				var rtcmIp = document.getElementById("rtcmIp").value;
+			} else {
+				var rtcmIp = "1.1.1.1"
+				var vehiclePort = document.getElementById("vehiclePort").value;
+				var vehicleIp = document.getElementById("vehicleIp").value;
+			}
+
+			// Erstellen Sie ein Objekt mit den gesammelten IP-Einstellungen
+			var ipSettings = {
+				deviceIp: deviceIp,
+				netmask: netmask,
+				gateway: gateway,
+				rtcmPort: rtcmPort,
+				vehiclePort: vehiclePort,
+				vehicleIp: vehicleIp,
+				rtcmIp: rtcmIp
+			};
+
+			var url = "/set_ip_config";
+			var params = Object.keys(ipSettings)
+				.map(function (key) {
+				return key + "=" + encodeURIComponent(ipSettings[key]);
+				})
+				.join("&");
+			url += "?" + params;
+
+			fetch(url)
+				.then((response) => response.text())
+				.then((data) => {
+					alert(data); // shows message with answer from server
+					// reload webseite after 7 seconds with changed IP address
+					setTimeout(function() {
+						window.location.href = "http://" + deviceIp + "/index.html";
+					}, 5000);
+				})
+				.catch((error) => console.error("Error:", error));
+		}
+
+		function loadIpSettings() {
+			fetch("get_ip_settings")
+				.then((response) => response.text())
+				.then((data) => {
+				var response = data.split("|");
+				document.getElementById("deviceIp").value = response[0];
+				document.getElementById("netmask").value = response[1];
+				document.getElementById("gateway").value = response[2];
+				document.getElementById("rtcmPort").value = response[3];
+				document.getElementById("rtcmIp").value = response[4];
+				document.getElementById("vehiclePort").value = response[5];
+				document.getElementById("vehicleIp").value = response[6];
+				})
+				.catch((error) => console.error("Error:", error));
+		}
+
+	
+		function showOptions() {
+			var device = document.getElementById("device").value;
+			var roverOptions = document.getElementById("roverOptions");
+			var baseOptions = document.getElementById("baseOptions");
+			var ipSettings = document.getElementById("ipSettings");
+			if (device == "rover") {
+				roverOptions.style.display = "block";
+				baseOptions.style.display = "none";
+			} else if (device == "base") {
+				roverOptions.style.display = "none";
+				baseOptions.style.display = "block";
+			} else {
+				roverOptions.style.display = "none";
+				baseOptions.style.display = "none";
+			}
+		}
+		
+		function showSubOptions() {
+			var baseMode = document.getElementById("baseMode").value;
+			var surveyInOptions = document.getElementById("surveyInOptions");
+			var fixedOptions = document.getElementById("fixedOptions");
+			if (baseMode == "surveyIn") {
+				surveyInOptions.style.display = "block";
+				fixedOptions.style.display = "none";
+			} else if (baseMode == "fixed") {
+				surveyInOptions.style.display = "none";
+				fixedOptions.style.display = "block";
+			} else {
+				surveyInOptions.style.display = "none";
+				fixedOptions.style.display = "none";
+			}
+		}
+
+		function add() {
+      		var f = parseInt(document.getElementsByName('input1')[0].value);
+      		var s =parseInt(document.getElementsByName('input2')[0].value);
+      		var result = f+s;
+      		document.getElementsByName('display')[0].value= result;
+   		}
+	</script>
+	<style>
+		html {
+			height: 100%;
+			width: 100%;
+		}
+		body[type="normal"] {
+			font-family: Arial, sans-serif;
+			background-color: #a2a2a2;
+			margin: 0;
+			padding: 0;
+			min-height: 100%;
+		}
+		div.inner {
+			font-family: Arial, sans-serif;
+			font-size: 12px;
+			background-color: #ffffff;
+			border: 0.2em solid #ddd;
+			margin: 0 auto;
+			padding: 2em;
+			max-width: 50em;
+		}
+		div.footer {
+			font-family: Arial, sans-serif;
+			text-align: center;
+			font-size: 12px;
+			color: #ddd;
+			background-color: #170069;
+			border: 0.2em solid #170069;
+			margin: 0 auto;
+			padding: 2em;
+			max-width: 50em;
+		}
+		form {
+			background-color: #ffffff;
+			/*border: 0.2em solid #ddd;
+			margin: 2em auto;
+			padding: 2em;*/
+			max-width: 50em;
+		}
+		header {
+			background-color: #333;
+			color: white;
+			padding: 1em;
+			text-align: center;
+		}
+		h1 {
+			margin: 0;
+			text-align: center;
+			font-size: 2.5em;
+		}
+		fieldset {
+			border: none;
+			margin: 0;
+			padding: 0;
+		}
+		label {
+			display: block;
+			margin-bottom: 1em;
+			width: 100%;
+		}
+		input[type="submit"] {
+			background-color: #170069;
+			border: none;
+			color: white;
+			padding: 0.5em 0.5em;
+			text-align: center;
+			text-decoration: none;
+			display: inline-block;
+			font-size: small;
+			margin: 0.5em 0.2em;
+			margin-right: 1em 0;
+			cursor: pointer;
+			border-radius: 0.5em;
+		}
+		input[type="reset"] {
+			background-color: #af4c4c;
+			border: none;
+			color: white;
+			padding: 0.5em 0.5em;
+			text-align: center;
+			text-decoration: none;
+			display: inline-block;
+			font-size: small;
+			margin: 0.5em 0.2em;
+			margin-right: 1em 0;
+			cursor: pointer;
+			border-radius: 0.5em;
+		}
+		.left-button[type="button"] {
+			background-color: #4CAF50;
+			border: none;
+			color: white;
+			padding: 0.5em 0.5em;
+			text-align: center;
+			text-decoration: none;
+			display: inline-block;
+			font-size: small;
+			margin: 0.5em 0.2em;
+			margin-right: 1em 0;
+			cursor: pointer;
+			border-radius: 0.5em;
+		}
+		input[type="button"] {
+			background-color: #4CAF50;
+			border: none;
+			color: white;
+			padding: 0.5em 0.5em;
+			text-align: center;
+			text-decoration: none;
+			display: inline-block;
+			font-size: small;
+			margin: 0.5em 0;
+			margin-left: auto;
+			cursor: pointer;
+			border-radius: 0.5em;
+		}
+		select {
+			display: block;
+			margin-bottom: 1em;
+			padding: 0.5em;
+			width: 100%;
+			box-sizing: border-box;
+			border: 0.1em solid #ccc;
+			border-radius: 0.4em;
+		}
+		.fancy-input {
+			margin: 0.5em;
+			padding-left: 50%;
+			width: 100%;
+			position: relative;
+		}
+		.fancy-input label {
+			position: absolute;
+			padding-left: 1em;
+			left: -3%;
+			top: .2em;
+			color: #000000;
+			font-size: 12px;
+		}
+		.fancy-input input {
+			display: block;
+			width: 47%;
+			padding: .15em;
+			text-align: right;
+			border: 0.12em solid #ccc;
+			border-radius: 0.4em;
+		}
+		.button_container {
+			display: flex;
+			justify-content: space-between;
+		}
+		img {
+			max-width: 100%;
+			height: auto;
+		}
+		hr {
+			background-color: #4CAF50;
+			height: 0.3em;
+			border: none;
+		}
+		/* Media Query für kleine Bildschirme (z. B. Handys) */
+		@media (max-width: 768px) {
+			.fancy-input label {
+				font-size: 2vw; /* Kleinerer Schriftgrad für Handys */
+			}
+		}
+
+	</style>
+	
+</head>
+<body type="normal" onload="onload()">
+	<header style="max-width: 50em; text-align: center; margin: 0 auto; font-size: 12px; padding: 2.2em; background-color: #170069;">
+		<h1 id="top">RTK-GPS ConfigTool</h1>
+	</header>
+	<div class="inner">
+		<div  style="text-align: center;">
+			<img src="img/17719_mobiletronics-gmbh.png">
+		</div>
+		<hr>
+		<input type="button" value="RTK-Settings" onclick="window.location.href='#settings'">
+		<input type="button" value="IP-Settings" onclick="window.location.href='#ipSettings'">
+		<h2>Status</h2>
+		<div class="fancy-input">
+			<label for="m">Mode:</label> 
+			<input type="mode" id="m" placeholder=" e.g. Survey_In" onchange="showStatus();">
+		</div>
+		<div class="fancy-input">
+			<label for="ft">Fix Type:</label> 
+			<input type="fixe_Type" id="ft" placeholder=" e.g. 2D-fix">
+		</div>
+		<div class="fancy-input">
+			<label for="hmsl">Height-AMSL:</label> 
+			<input type="hMSL" id="hmsl" placeholder=" e.g. 102.05 m">
+		</div>
+		<div class="fancy-input">
+			<label for="hacc">Horizontal Accuracy:</label> 
+			<input type="hAcc" id="hacc" placeholder=" e.g. 58 mm">
+		</div>
+		<div class="fancy-input">
+			<label for="vacc">Vertical Accuracy:</label> 
+			<input type="vAcc" id="vacc" placeholder=" e.g. 60 mm ">
+		</div>
+		<div class="fancy-input">
+			<label for="nsu">Satellites used in NAV:</label> 
+			<input type="num_sat_used" id="nsu" placeholder=" e.g. 22">
+		</div>
+		<div id="fixed-block">
+			<br>
+			<hr>			
+			<h2>Fixed Status</h2>
+			<div class="fancy-input">
+				<label for="ex">ECEF X:</label> 
+				<input type="Ecef_x" id="ex" placeholder="e.g. 358156016 m">	
+			</div>
+			<div class="fancy-input">
+				<label for="ey">ECEF Y:</label> 
+				<input type="Ecef_y" id="ey" placeholder="e.g. 358156016 m">	
+			</div>
+			<div class="fancy-input">
+				<label for="ez">ECEF Z:</label> 
+				<input type="Ecef_z" id="ez" placeholder="e.g. 358156016 m">	
+			</div>
+		</div>
+
+		<div id="svin-block">
+			<br>
+			<hr>
+			<h2>Survey-In-Status</h2>
+			<div class="fancy-input">
+				<label for="ss">Status:</label> 
+				<input type="text" id="ss" placeholder="e.g. Running">
+			</div>
+			<div class="fancy-input">
+				<label for="sv">Valid:</label> 
+				<input type="text" id="sv" placeholder="Yes/No">
+			</div>
+			<div class="fancy-input">
+				<label for="sot">Observation Time:</label> 
+				<input type="text" id="sot" placeholder="e.g. 500 s">
+			</div>
+			<div class="fancy-input">
+				<label for="smd">Minimum Duration:</label> 
+				<input type="SVIN_Min_Dur" id="smd" placeholder=" e.g. 560 s">	
+			</div>
+			<div class="fancy-input">
+				<label for="sal">Accuracy Limit:</label> 
+				<input type="SVIN_Acc_Lim" id="sal" placeholder=" e.g. 50 mm">	
+			</div>
+			<div class="fancy-input">
+				<label for="spu">Positions Used:</label> 
+				<input type="text" id="spu" placeholder="e.g. 480">
+			</div>
+			<div class="fancy-input">
+				<label for="exs">ECEF X:</label> 
+				<input type="text" id="exs" placeholder="e.g. 358156016 m">	
+			</div>
+			<div class="fancy-input">
+				<label for="eys">ECEF Y:</label> 
+				<input type="text" id="eys" placeholder="e.g. 358156016 m">	
+			</div>
+			<div class="fancy-input">
+				<label for="ezs">ECEF Z:</label> 
+				<input type="text" id="ezs" placeholder="e.g. 358156016 m">	
+			</div>
+			<div class="fancy-input">
+				<label for="sm">Mean 3D StdDev:</label> 
+				<input type="text" id="sm" placeholder="e.g. 0.20 m">
+			</div>
+		</div>
+		<br>
+		<hr>
+		<form onsubmit="event.preventDefault(); submitForm();" action="javascript:void(0);" method="post">
+			<h2 id="settings">RTK-Settings</h2>
+			<fieldset>
+				<legend>Select the device:</legend>
+				<label for="device">Device:</label>
+				<select id="device" name="device" onchange="showOptions()">
+					<option value="">--- Please select ---</option>
+					<option value="base">Base</option>
+					<option value="rover">Rover</option>
+				</select>				
+				<label for="updateRate">Updaterate:</label>
+				<select id="updateRate" name="updateRate">
+					<option value="25">25 ms</option>
+					<option value="50">50 ms</option>
+					<option value="100">100 ms</option>
+					<option value="200">200 ms</option>
+					<option value="500">500 ms</option>
+					<option value="1000">1000 ms</option>
+				</select>
+				<label for="baudrate">Baudrate:</label>
+				<select id="baudrate" name="baudrate">
+					<option value="57600">57600</option>
+					<option value="115200">115200</option>
+					<option value="230400">230400</option>
+					<option value="460800">460800</option>
+				</select>
+			</fieldset>
+			<fieldset id="roverOptions" style="display: none;">
+				<legend>Rover-Options:</legend>
+			</fieldset>
+			<fieldset id="baseOptions" style="display: none;">
+				<legend>Base-Options:</legend>
+				<label for="baseMode">Mode:</label>
+				<select id="baseMode" name="baseMode" onchange="showSubOptions()">
+					<option value="">--- Please select ---</option>
+					<option value="surveyIn">Survey-In</option>
+					<option value="fixed">Fixed</option>
+				</select>
+				<div id="surveyInOptions" style="display: none;">
+					<div class="fancy-input">
+						<label for="minTime">Minimum term (seconds):</label>
+						<input type="number" id="minTime" name="minTime" min="1" max="100000" value="2500">
+					</div>
+					<div class="fancy-input">
+						<label for="accuracy">Accuracy (millimeter):</label>
+					<input type="number" id="accuracy" name="accuracy" min="1" max="5000" value="500">
+					</div>
+				</div>
+				<div id="fixedOptions" style="display: none;">
+					<div class="fancy-input">
+						<label for="ecefX">ECEF X (mm):</label>
+						<input type="number" id="ecefX" name="ecefX" min="-100000000000" max="100000000000" step="1" value="3886792066">
+					</div>
+					<div class="fancy-input">
+						<label for="ecefY">ECEF Y (mm):</label>
+						<input type="number" id="ecefY" name="ecefY" min="-100000000000" max="100000000000" step="1" value="528119821">
+					</div>
+					<div class="fancy-input">
+						<label for="ecefZ">ECEF Z (mm):</label>
+						<input type="number" id="ecefZ" name="ecefZ" min="-100000000000" max="100000000000" step="1" value="5012508057">
+					</div>
+				</div>
+			</fieldset>
+			<fieldset id="nmeaOptions" style="display: none;">
+				<label for="nmea">NMEA output:</label>
+				<select id="nmea" name="nmea" onchange="showOptions()">
+					<option value="">--- Please select ---</option>
+					<option value="nmeaOn">Einschalten</option>
+					<option value="nmeaOff">Ausschalten</option>
+				</select>
+			</fieldset>
+			<fieldset id="buttons">
+				<div class="button_container">
+					<input type="submit" value="Submit">
+					<input type="reset" value="Reset">
+					<input type="button" value="Go to top" onclick="window.location.href='#top'">
+				</div>
+			</fieldset>
+			<br>
+			<hr>
+		</form>
+		<form onsubmit="event.preventDefault(); submitIpForm();" action="javascript:void(0);" method="post">
+			<h2 id="ipSettings">IP-Settings</h2>
+			<fieldset id="ipSettings">
+				<div class="fancy-input">
+					<label for="deviceIp">Device IP:</label> 
+					<input type="text" id="deviceIp" name="deviceIp" placeholder="e.g. 192.168.178.11">
+				</div>
+				<div class="fancy-input">
+					<label for="netmask">Netmask:</label> 
+					<input type="text" id="netmask" name="netmask" placeholder="e.g. 255.255.255.0">
+				</div>
+				<div class="fancy-input">
+					<label for="gateway">Gateway:</label> 
+					<input type="text" id="gateway" name="gateway" placeholder="e.g. 192.168.178.1">
+				</div>	
+				<div class="fancy-input">
+					<label for="rtcmPort">RTCM Broadcast UDP Port:</label> 
+					<input type="number" id="rtcmPort" name="rtcmPort" placeholder="e.g. 5000">
+				</div>	
+				<div id="rover-block">
+					<div class="fancy-input">
+						<label for="vehiclePort">Vehicle / Receiver UDP Port:</label> 
+						<input type="number" id="vehiclePort" name="vehiclePort" placeholder="e.g. 5000">
+					</div>
+					<div class="fancy-input">
+						<label for="vehicleIp">Vehicle / Receiver IP:</label> 
+						<input type="text" id="vehicleIp" name="vehicleIp" placeholder="e.g. 192.168.178.12">
+					</div>
+				</div>	
+				<div id="base-block">
+					<div class="fancy-input">
+						<label for="rtcmIp">RTCM Broadcast IP:</label> 
+						<input type="text" id="rtcmIp" name="rtcmIp" placeholder="e.g. 255.255.255.255">
+					</div>
+				</div>
+			</fieldset>
+			<fieldset id="buttons">
+				<div class="button_container">
+					<input type="submit" value="Submit">
+					<input type="button" class="left-button" value="Load IP settings" onclick="loadIpSettings();" style="background-color: #170069;">
+					<input type="reset" value="Reset">
+					<input type="button" value="Go to top" onclick="window.location.href='#top'">
+				</div>
+			</fieldset>
+			<br>
+			<hr>
+		</form>
+	</div>
+	<div class="footer">
+		<footer>
+			&copy; 2023 MobileTronics GmbH. All rights reserved.
+		</footer>
+	</div>
+</body>
+</html>
